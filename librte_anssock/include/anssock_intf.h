@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  *
- *   Copyright(c) 2010-2014 Netdp Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 ANS Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Netdp Corporation nor the names of its
+ *     * Neither the name of ANS Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  *
@@ -135,6 +135,19 @@ ssize_t anssock_send(int sockfd, const void *buf, size_t len, int flags);
 ssize_t anssock_write(int fd, const void *buf, size_t count);
 
 /**
+ *  Writes iovcnt buffers of data described by iov to the file associated with the file descriptor fd ("gather output").
+ *  Write user data via socket. This is nonblocking function, so shall check EAGAIN.
+ *
+ * @param       
+ * @param 
+ *
+ * @return  
+ *  On success, these calls return the number of characters sent.  On error, -1 is returned, and errno is set appropriately.
+ *   If errno is EAGAIN, no buffer for sending data.
+ */
+ssize_t anssock_writev(int fd, const struct iovec *iov, int iovcnt);
+
+/**
  * Receive user data from socket. This function is designed as nonblocking function, so shall not set socket as nonblocking and work with epoll.
  *
  * @param       
@@ -172,6 +185,19 @@ ssize_t anssock_recv(int sockfd, void *buf, size_t len, int flags);
  *  If errno is EAGAIN, no data are present to be received.
  */ 
 ssize_t anssock_read(int fd, void *buf, size_t count);
+
+
+/**
+ * Reads iovcnt buffers from the file associated with the file descriptor fd into the buffers described by iov ("scatter input").
+ *
+ * @param       
+ * @param 
+ *
+ * @return  
+ *  These calls return the number of bytes received, or -1 if an error occurred.  In the event of an error, errno is set to indicate the error.  
+ *  If errno is EAGAIN, no data are present to be received.
+ */ 
+ssize_t anssock_readv(int fd, const struct iovec *iov, int iovcnt);
 
 /**
  * Listen for connections on a socket

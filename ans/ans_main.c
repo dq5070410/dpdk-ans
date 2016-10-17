@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  *
- *   Copyright(c) 2010-2014 Netdp Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 ANS Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Netdp Corporation nor the names of its
+ *     * Neither the name of ANS Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  *
@@ -30,6 +30,8 @@
  *   (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
  *   OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+ 
+#define _GNU_SOURCE             /* See feature_test_macros(7) */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -41,6 +43,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <getopt.h>
+#include <sched.h>
 
 #include <rte_common.h>
 #include <rte_vect.h>
@@ -857,7 +860,7 @@ int main(int argc, char **argv)
     unsigned nb_ports;
     unsigned lcore_id;
     struct ans_init_config init_conf;
-
+    int s;
     
     memset(&ans_user_conf, 0, sizeof(ans_user_conf));
     memset(ans_lcore_conf, 0, sizeof(ans_lcore_conf));
@@ -865,6 +868,15 @@ int main(int argc, char **argv)
     ans_user_conf.numa_on = 1;
     ans_user_conf.lcore_param_nb = sizeof(ans_lcore_params_default) / sizeof(ans_lcore_params_default[0]);
     rte_memcpy(ans_user_conf.lcore_param, ans_lcore_params_default, sizeof(ans_lcore_params_default));
+
+    CPU_ZERO(&init_conf.cpu_set);
+
+    s = sched_getaffinity(0, sizeof(cpu_set_t), &init_conf.cpu_set);
+    if (s != 0) 
+    {
+    	printf("ANS sched_getaffinity failed:%s\n", strerror(errno));
+    	return -1;
+    }
 
     /* init EAL */   
 
@@ -924,7 +936,7 @@ int main(int argc, char **argv)
     printf("core mask: %x, sockets number:%d, lcore number:%d \n", ans_user_conf.lcore_mask, ans_user_conf.socket_nb, ans_user_conf.lcore_nb);
 
     printf("start to init ans \n");
-    init_conf.max_sock_conn = ans_user_conf.lcore_nb * 64 * 1024;
+    init_conf.max_sock_conn = ans_user_conf.lcore_nb * 128 * 1024;
 
     init_conf.lcore_mask = ans_user_conf.lcore_mask;
     for(i = 0 ; i < MAX_NB_SOCKETS; i++)
@@ -963,8 +975,8 @@ int main(int argc, char **argv)
 
         ans_intf_add(portid,  ifname, &eth_addr);
 
-        int ip_addr = 0x02020202;
-        ip_addr += portid;
+        int ip_addr = 0x0200000a;
+        ip_addr += portid << 16;
 
         printf("add IP %x on device %s \n", ip_addr, ifname);
         ans_intf_add_ipaddr((caddr_t)ifname, ip_addr, 0x00ffffff);  
@@ -979,7 +991,7 @@ int main(int argc, char **argv)
     int route_ret = 0;
     printf("add static route \r\n");
 
-    route_ret = ans_add_route(0x00030303, 1, 0x05020202, 0x00ffffff, ANS_IP_RTF_GATEWAY);
+    route_ret = ans_add_route(0x00000a0a, 1, 0x0500000a, 0x00ffffff, ANS_IP_RTF_GATEWAY);
 
     ans_route_show_all();
 

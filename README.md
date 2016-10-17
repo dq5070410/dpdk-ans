@@ -2,6 +2,8 @@
 --------------
 ANS(accelerated network stack) is porting from [FreeBSD](http://freebsd.org) TCP/IP stack, and provide a userspace TCP/IP stack for use with the Intel [dpdk](http://dpdk.org/). 
 
+- ans: accelerated network stack process.
+ 
 - librte_ans: TCP/IP stack static library. ANS use dpdk mbuf, ring, memzone, mempool, timer, spinlock. so zero copy mbuf between dpdk and ANS. 
 
 - librte_anssock: ANS socket lib for application, zero copy between ANS and application.
@@ -11,7 +13,7 @@ ANS(accelerated network stack) is porting from [FreeBSD](http://freebsd.org) TCP
 - test: Example application with ANS for testing ANS tcp/ip stack
 
 Support environment
-  - EAL is based on dpdk-16.04
+  - EAL is based on dpdk-16.07
   - Development enviroment is based on x86_64-native-linuxapp-gcc
   - TCP/IP stack is based on FreeBSD 10.0-RELEASE
   - linux version：
@@ -31,7 +33,7 @@ Support feature:
  - Commands for showing ARP table
  - UDP protocol
  - Socket layer, share memory.
- - Socket API, socket/close/send/recv/epoll.
+ - Socket API, socket/close/send/recv/epoll/writev/readv/shutdown.
  - TCP protocol
     - Free lock, hash table.
     - Support SO_REUSEPORT, multi application can listen the same port.
@@ -50,7 +52,7 @@ Next Planning
          |-------|       |-------|       |-------|
              |               |               |
 --------------------------------------------------
-netdpsock    |               |               |			
+anssock      |               |               |			
              fd              fd              fd
              |               |               |
 --------------------------------------------------
@@ -77,7 +79,7 @@ ANS          |               |               |
  - APP process runs as a tcp server.
   - If App process only creates one listen socket, the listen socket only listens on one lcore and accept tcp connections from the lcore, so the APP process number shall large than the lcore number. The listen sockets of APP processes are created on each lcore averagely. For example: ans(with -c 0x3) run on two lcore, shall run two nginx(only run master ), one nginx listens on lcore0, another nginx listens on lcore1.
   - If App process creates many listen sockets, the listen sockets number shall be equal to the lcore numbers. these listen sockets can be created on each lcore averagely too. For example: ans(with -c 0x3) run on two lcore, redis server(one process) shall create two listen socket, one listen socket is created on lcore0, another listen socket is created on lcore1.
- - APP process runs as a tcp client, app process can communicate with each lcore. The tcp connection can be located in specified lcore automaticly.
+ - APP process runs as a tcp client. App process can communicate with each lcore. The tcp connection can be located in specified lcore automaticly.
  - APP process can bind the same port if enable reuseport, APP process could accept tcp connection by round robin.
  - If NIC don't support multi queue or RSS, shall enhance ans_main.c, reserve one lcore to receive and send packets from NIC, and distribute packets to lcores of ANS tcp stack by software RSS.
 
@@ -102,22 +104,6 @@ ANS          |               |               |
     | 53k connection/s | 43k connection/s  | 
     |--------------------------------------| 
 ```
-- TCP socket data transmission performance
- 
-One socket receive 190Mbyte tcp payload, one socket send 130Mbyte tcp payload
-```
-Communication(synchronization)  0 runtime:	 0.734931 s
-Communication(synchronization)  1 runtime:	 0.469566 s
-Communication(synchronization)  2 runtime:	 0.449729 s
-Communication(synchronization)  3 runtime:	 0.648432 s
-Communication(synchronization)  4 runtime:	 0.449422 s
-Communication(synchronization)  5 runtime:	 0.647259 s
-Communication(synchronization)  6 runtime:	 0.457027 s
-Communication(synchronization)  7 runtime:	 0.457691 s
-Communication(synchronization)  8 runtime:	 0.67568 s
-Communication(synchronization)  9 runtime:	 0.736285 s
-```
-
 - L3 forwarding performance testing
 
   ENV: CPU- intel xeon 2.3G, NIC- 10G, one lcore rx packets-->l3 forwarding --> tx packets,  Test tool:pktgen-DPDK
@@ -248,15 +234,33 @@ Saving to: ‘nginx_large_data.3’
 2016-04-24 08:46:25 (111 MB/s) - ‘nginx_large_data.3’ saved [80185146/80185146]
 
 ```
+- dpdk-nginx over ans performance
+```
+CPU:Intel(R) Xeon(R) CPU E5-2670 0 @ 2.60GHz.
+NIC:82599ES 10-Gigabit SFI/SFP+ Network Connection (rev 01) 
+ANS run on a lcore.
+6 dpdk-nginx run on ANS.
+
+./wrk -c 5k -d30s -t16  http://10.0.0.2/
+Running 30s test @ http://10.0.0.2/
+  16 threads and 5000 connections
+  Thread Stats   Avg      Stdev     Max   +/- Stdev
+    Latency    41.93ms  119.14ms   1.73s    92.61%
+    Req/Sec    18.16k     1.73k   26.34k    76.00%
+  8700983 requests in 30.11s, 6.88GB read
+Requests/sec: 288956.57
+Transfer/sec:    233.95MB
+
+```
 
 ####Examples
 -------
 - dpdk_tcp_server, tcp server run on ANS tcp/ip stack.
 - [dpdk-nginx](https://github.com/opendp/dpdk-nginx), nginx was porting to run on ANS tcp/ip stack.
 
-####[Wiki Page](https://github.com/dpdk-net/netdp/wiki)
+####[Wiki Page](https://github.com/dpdk-net/ans/wiki)
 -------
-You can get more information and instructions from [wiki page](https://github.com/dpdk-net/netdp/wiki).
+You can get more information and instructions from [wiki page](https://github.com/opendp/dpdk-ans/wiki).
 
 ####Notes
 -------
@@ -271,6 +275,14 @@ $ sudo sysctl -w kernel.randomize_va_space=0
 - In order to improve ANS performance, you shall isolate ANS'lcore from kernel by isolcpus and isolcate interrupt from ANS's lcore by update /proc/irq/default_smp_affinity file.
 - ANS run as dpdk primary process, when startup ANS, shall stop other secondary processes(nginx/redis/http_server).
 - Don't run ANS on lcore0, it will effect ANS performance.
+
+- You shall include dpdk libs as below way because mempool lib has __attribute__((constructor, used)) in dpdk-16.07 version, otherwise your application would coredump.
+```
+  -$(RTE_ANS)/librte_anssock/librte_anssock.a \
+  -L$(RTE_SDK)/$(RTE_TARGET)/lib \
+  -Wl,--whole-archive -Wl,-lrte_mbuf -Wl,-lrte_mempool -Wl,-lrte_ring -Wl,-lrte_eal -Wl,--no-whole-archive -Wl,-export-dynamic \
+
+```
 
 ####Support
 -------

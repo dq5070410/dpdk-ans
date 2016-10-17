@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  *
- *   Copyright(c) 2010-2014 Netdp Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 ANS Corporation. All rights reserved.
  *   All rights reserved.
  *
  *   Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Netdp Corporation nor the names of its
+ *     * Neither the name of ANS Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  *
@@ -32,8 +32,8 @@
  */
 
 
-#ifndef _ANSCLI_IP_H_
-#define _ANSCLI_IP_H_
+#ifndef _ANSCLI_CONF_H_
+#define _ANSCLI_CONF_H_
 
 /* not defined under linux */
 #define NIPQUAD_FMT "%u.%u.%u.%u"
@@ -86,4 +86,4 @@ struct anscli_log_result {
 extern cmdline_parse_ctx_t ip_main_ctx[];
 
 
-#endif /* _ANSCLI_IP_H_ */
+#endif /* _ANSCLI_CONF_H_ */

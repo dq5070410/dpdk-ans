@@ -1,7 +1,7 @@
 /*-
  *   BSD LICENSE
  * 
- *   Copyright(c) 2010-2014 Netdp Corporation. All rights reserved.
+ *   Copyright(c) 2010-2014 ANS Corporation. All rights reserved.
  *   All rights reserved.
  * 
  *   Redistribution and use in source and binary forms, with or without
@@ -14,7 +14,7 @@
  *       notice, this list of conditions and the following disclaimer in
  *       the documentation and/or other materials provided with the
  *       distribution.
- *     * Neither the name of Netdp Corporation nor the names of its
+ *     * Neither the name of ANS Corporation nor the names of its
  *       contributors may be used to endorse or promote products derived
  *       from this software without specific prior written permission.
  * 
@@ -54,7 +54,7 @@
 #define TX_WTHRESH 0  /**< Default values of TX write-back threshold reg. */
 
 #define MAX_PKT_BURST     32
-#define MAX_TX_BURST       32         /* set tx burst as 1 for lower packet latency */
+#define MAX_TX_BURST      16         /* set tx burst as 1 for lower packet latency */
 #define BURST_TX_DRAIN_US 100 /* TX drain every ~100us */
 
 #define MAX_MBUF_NB     (1024 * 16)
